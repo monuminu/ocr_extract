@@ -57,4 +57,57 @@ with(Image(filename=diag,resolution=200)) as source:
     pages=len(images)
     for i in range(pages):
         Image(images[i]).save(filename=str(i)+'.png')
-'''        
+'''       
+
+from PIL import Image
+from tesserocr import PyTessBaseAPI, PSM
+
+with PyTessBaseAPI(psm=PSM.AUTO_OSD) as api:
+    image = Image.open("/usr/src/tesseract/testing/eurotext.tif")
+    api.SetImage(image)
+    api.Recognize()
+
+    it = api.AnalyseLayout()
+    orientation, direction, order, deskew_angle = it.Orientation()
+    print("Orientation: {:d}".format(orientation))
+    print("WritingDirection: {:d}".format(direction))
+    print("TextlineOrder: {:d}".format(order))
+    print("Deskew angle: {:.4f}".format(deskew_angle))
+    
+from tesserocr import PyTessBaseAPI, RIL, iterate_level, PT , OEM, PSM
+from PIL import Image, ImageDraw
+import os
+tess_path = r"C:\Program Files\Tesseract-OCR\tessdata"
+image = r"E:\Data_Science\data\images\gln20070618016-12.png"
+img = Image.open(image)
+draw = ImageDraw.Draw(img)
+with PyTessBaseAPI(path = tess_path, oem = OEM.TESSERACT_LSTM_COMBINED) as api:
+    api.SetImageFile(image)
+    api.SetVariable("textord_tabfind_find_tables", "T")
+    #api.SetVariable("textord_tablefind_recognize_tables", "T")
+    api.Recognize()
+    ri = api.GetIterator()
+    level = RIL.BLOCK
+    for r in iterate_level(ri, level):
+        #print(r.BlockType())
+        if r.BlockType() == PT.FLOWING_TEXT:
+            bb = r.BoundingBox(level)
+            draw.rectangle(bb, None, "orange", 8)
+        elif r.BlockType() == PT.PULLOUT_TEXT:
+            bb = r.BoundingBox(level)
+            draw.rectangle(bb, None, "brown", 8)    
+        elif r.BlockType() == PT.HEADING_TEXT:
+            bb = r.BoundingBox(level)
+            draw.rectangle(bb, None, "green", 8)
+        elif r.BlockType() == PT.TABLE:
+            bb = r.BoundingBox(level)
+            draw.rectangle(bb, None, "red", 8)
+        elif r.BlockType() == PT.HORZ_LINE:
+            bb = r.BoundingBox(level)
+            draw.rectangle(bb, None, "yellow", 8)
+        elif r.BlockType() == 3:
+            bb = r.BoundingBox(level)
+            #print(bb)
+            draw.rectangle(bb, None, "blue", 8)
+#img.save(image.replace(".png", "_overlayed.jpeg"),format="jpeg")
+img.show()    
